@@ -50,7 +50,7 @@ The PointNet classification network (the upper part of the figure shown below) t
 
 See the [PointNet project page](https://stanford.edu/~rqi/pointnet/) for more details about Pointnet.
 
-## ModelNet40
+### ModelNet40
 
 ModelNet40 consists of 12,311 CAD-generated meshes distributed over 40 categories/classes (of "common" objects such as airplane, car, plant, lamp, etc.). A large portion of these meshes (9,843 to be exact) are used for training and a smaller portion (2,468 to be exact) are reserved for testing.
 
