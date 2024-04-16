@@ -5,3 +5,5 @@
 # data files
 data/ModelNet40/*
 data/ModelNet40_preprocessed/*
+# except class_map which is also used for prediction
+!data/ModelNet40_preprocessed/class_map.json
