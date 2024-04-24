@@ -16,20 +16,16 @@ def preprocess_mesh(mesh_file, num_points=2048, compute_normals=False, augment_d
     # Normalize points
     points = norm_points(points)
     
-    # Compute unit normal vector associated with each point
+    # Compute the unit normal vector associated with each point
     if compute_normals:
         normals = mesh.face_normals[sampled_faces]
         points = np.hstack([points, normals])
 
-    # Augment data
-    if augment_data:
-        points = augment(points)
-
     return points
 
 
-def augment(points):
-    """Data augmentation: rotate, jitter and shuffle points."""
+def augment_points(points):
+    """Data augmentation: rotate and jitter points."""
 
     # Check if normals are also provided (x, y, z, nx, ny, nz)
     _, dim = points.shape
@@ -48,11 +44,6 @@ def augment(points):
 
     # Jitter points
     points += np.random.normal(scale=0.02, size=points.shape)
-    
-    # Shuffle points
-    if dim==6:
-        points = np.hstack([points, normals])
-    np.random.shuffle(points) # inplace (return None)
     
     return points
 

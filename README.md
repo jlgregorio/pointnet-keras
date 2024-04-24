@@ -23,7 +23,7 @@ but may also be installed via conda with
 
 PointNet is often trained on the ModelNet40 dataset, which is also chosen here. An already trained model is included in `models/saved` folder (see below for usage). The `train_model.py` file may be re-used for futher experimentations (see below for data preparation).
 
-In detail, the use of a custom training loop has been avoided by relying on Callbacks (`tf.keras.callbacks.Callback`) to update the *learning rate* and *batch normalization momentum* during training (in accordance with the original paper/implementation).
+In detail, the use of a custom training loop has been avoided. The *learning rate* and *batch normalization momentum* are updated during training (in accordance with the original paper/implementation) by relying on Callbacks (`tf.keras.callbacks.Callback`). The training data are augmented "on the fly" (also in accordance with the original paper/implementation) by implementing a custom data generator (`keras.utils.Sequence`).
 
 ### Predicting
 

@@ -3,8 +3,52 @@ import os
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
+import h5py
 
 from models import PointNetClassifier
+from utils import augment_points
+
+
+class DataGenerator(keras.utils.Sequence):
+    """Dataset is modified between epoch."""
+
+    def __init__(self, x_in, y_in, batch_size, augment_data=False):
+
+        self.x, self.y = x_in, y_in
+        self.data_len = len(y_in)
+
+        self.batch_size = batch_size
+
+        self.indices = np.arange(self.data_len)
+        np.random.shuffle(self.indices)
+
+        self.augment_data = augment_data
+
+    def __len__(self):
+        """Number of batches per epoch."""
+
+        return np.ceil(self.data_len/self.batch_size).astype("int")
+
+    def __getitem__(self, index):
+        """Generate one batch of data."""
+
+        low = index * self.batch_size
+        high = np.min((low + self.batch_size, self.data_len))
+        batch_indices = self.indices[low:high]
+
+        batch_x = self.x[batch_indices]
+        if self.augment_data: # Slightly different data each time
+            batch_x = np.array([augment_points(x) for x in batch_x])
+
+        batch_y = self.y[batch_indices]
+
+        return batch_x, batch_y
+
+    def on_epoch_end(self):
+        """Shuffle indices after each epoch."""
+
+        self.indices = np.arange(self.data_len)
+        np.random.shuffle(self.indices)
 
 
 class LearningRateScheduler(keras.callbacks.Callback):
@@ -18,7 +62,7 @@ class LearningRateScheduler(keras.callbacks.Callback):
         self.decay_epochs = 20
 
     def on_epoch_begin(self, epoch, logs=None):
-        
+
         lr = self.model.optimizer.learning_rate
         # Set initial value
         if not epoch:
@@ -29,19 +73,19 @@ class LearningRateScheduler(keras.callbacks.Callback):
         print(f"Epoch {epoch}: Learning rate is {float(np.array(lr)):.6f}.")
 
 
-class BatchNormalizationMomentumScheduler(tf.keras.callbacks.Callback):
+class BatchNormalizationMomentumScheduler(keras.callbacks.Callback):
     """The decay rate for batch normalization starts with 0.5 and is gradually 
     increased to 0.99."""
-    
+
     def __init__(self,):
         super().__init__()
-        
+
         self.initial_momentum = 0.5
         self.final_momentum = 0.99
         self.rate = 0.005
-    
+
     def on_epoch_begin(self, epoch, logs=None):
-        
+
         # Linear growth
         new_bn_momentum = self.initial_momentum + self.rate * epoch
         # Max value
@@ -64,11 +108,14 @@ if __name__ == "__main__":
     # About the data
     DATA_DIR = "./data/ModelNet40_preprocessed/"
 
-    # Load dataset
-    train_dataset = tf.data.Dataset.load(os.path.join(DATA_DIR, "ModelNet40_train"))
-    test_dataset = tf.data.Dataset.load(os.path.join(DATA_DIR, "ModelNet40_test"))
-    train_dataset = train_dataset.batch(BATCH_SIZE)
-    test_dataset = test_dataset.batch(BATCH_SIZE)
+    # Load dataset (pointclouds sampled from meshes)
+    data_file = h5py.File(os.path.join(DATA_DIR, "ModelNet40.hdf5"))
+    train_points, train_labels = data_file["train"]["points"][...], data_file["train"]["labels"][...]
+    test_points, test_labels = data_file["test"]["points"][...], data_file["test"]["labels"][...]
+
+    # Use generators for training data augmentation
+    training_generator = DataGenerator(train_points, train_labels, BATCH_SIZE, augment_data=True)
+    validation_generator = DataGenerator(test_points, test_labels, BATCH_SIZE, augment_data=False)
 
     # Build and train the model    
     model = PointNetClassifier(NUM_CLASSES)
@@ -77,20 +124,20 @@ if __name__ == "__main__":
 
     model.compile(
         loss="sparse_categorical_crossentropy",
-        optimizer=keras.optimizers.Adam(),
+        optimizer="adam",
         metrics=["sparse_categorical_accuracy"],
     )
     
     history = model.fit(
-        train_dataset,
+        training_generator,
         epochs=MAX_EPOCH,
-        validation_data=test_dataset,
+        validation_data=validation_generator,
         callbacks=[
             LearningRateScheduler(),
             BatchNormalizationMomentumScheduler()
         ]
     )
 
-    # Save trained model
+    # Save the trained model
     np.save(os.path.join(SAVE_DIR, "history_train.npy"), history.history)
     model.save(os.path.join(SAVE_DIR,"PointNetClassifier.keras"))
