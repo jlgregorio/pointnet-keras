@@ -33,7 +33,7 @@ In detail, using the Keras API allows to save and load models (configuration, we
 
 ### Data preparation
 
-Data often have to be preprocessed before training, which is the case for the ModelNet40 dataset. The `ModelNet40_prep.py` in the `data` folder contains all the preprocessing steps carried here. Just download the ModelNet40 dataset (put it in `data/ModelNet40` by default) and run the file. This will create a Tensorflow dataset (`tf.data.Dataset`) and save it in `data/ModelNet40_preprocessed`.
+Data often have to be preprocessed before training, which is the case for the ModelNet40 dataset. The `modelnet40.py` in the `data` folder contains all the preprocessing steps carried here. Just download the ModelNet40 dataset (put it in `data/ModelNet40` by default) and run the file. This will create a Tensorflow dataset (`tf.data.Dataset`) and save it in `data/ModelNet40_preprocessed`.
 
 In detail, a pointcloud (consisting of *n* points, optionally with normals) is sampled from the faces of each mesh (according to face area) contained in the ModelNet40 dataset. Pointclouds are normalized into a unit sphere. An augmentation step is performed for pointclouds used for training (randomly rotating along the up axis, jittering the position of each point by gaussian noise and shuffling the points).
 
