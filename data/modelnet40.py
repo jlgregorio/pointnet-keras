@@ -88,9 +88,9 @@ if __name__ == "__main__":
     train_files, train_labels, test_files, test_labels, class_map = parse_ModelNet40_dataset(MN40_DIR)
 
     # Compute pointclouds
-    train_points = np.array([preprocess_mesh(f, NUM_POINTS, USE_NORMALS, augment_data=False)
+    train_points = np.array([preprocess_mesh(f, NUM_POINTS, USE_NORMALS)
                              for f in train_files], dtype="float32")
-    test_points = np.array([preprocess_mesh(f, NUM_POINTS, USE_NORMALS, augment_data=False)
+    test_points = np.array([preprocess_mesh(f, NUM_POINTS, USE_NORMALS)
                             for f in test_files], dtype="float32")
 
     # Store result in a HDF5 file
