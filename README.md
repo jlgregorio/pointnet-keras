@@ -17,7 +17,7 @@ but may also be installed via conda with
 
     conda install tensorflow-gpu -c conda-forge
 
-(not the lasted version but it works here).
+(not the last version but it works here).
 
 ### Training
 

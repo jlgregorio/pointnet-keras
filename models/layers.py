@@ -1,11 +1,11 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
-from keras.layers import Layer, Conv2D, BatchNormalization, Dense, ReLU, GlobalMaxPooling1D
+from keras import layers
 
 # TODO: use a Regulizer (Keras) in PointNetTransform Layer
 
-class PointNetTransform(Layer):
+class PointNetTransform(layers.Layer):
     """The PointNet transform layer used for features encoding.
     
     It consists of a T-Net predicting an input-dependant transformation matrix 
@@ -73,7 +73,7 @@ class PointNetTransform(Layer):
 
         # Global features
         # (B, N, 1024) -> (B, 1024)
-        x = GlobalMaxPooling1D()(x)
+        x = layers.GlobalMaxPooling1D()(x)
 
         # Fully-connected layers
         # (B, 1024) -> (B, 512) -> (B, 256)
@@ -110,7 +110,7 @@ class PointNetTransform(Layer):
         return cls(**config)
 
 
-class PointNetSharedMLP(Layer):
+class PointNetSharedMLP(layers.Layer):
     """The PointNet shared MLP (or convolution) layer used for features encoding.
     
     It consists of a shared (convulutional) layer, a batch normalization layer 
@@ -130,18 +130,18 @@ class PointNetSharedMLP(Layer):
 
     def build(self, batch_input_shape):
 
-        self.conv = Conv2D(
+        self.conv = layers.Conv2D(
             self.filters,
             kernel_size=(1, 1),
             input_shape=batch_input_shape
         )
-        self.bn = BatchNormalization(momentum=self.bn_momentum)
-        self.activation = ReLU()
+        self.bn = layers.BatchNormalization(momentum=self.bn_momentum)
+        self.activation = layers.ReLU()
 
     def call(self, x, training=None):
 
         x = self.conv(x)
-        x = self.bn(x, training)
+        x = self.bn(x, training=training)
 
         return self.activation(x)
 
@@ -157,7 +157,7 @@ class PointNetSharedMLP(Layer):
         return cls(**config)
 
 
-class PointNetMLP(Layer):
+class PointNetMLP(layers.Layer):
     """The PointNet MLP (or dense) layer used for classification.
     
     It consists of a fully connected layer, a batch normalization layer and a
@@ -177,14 +177,14 @@ class PointNetMLP(Layer):
 
     def build(self, batch_input_shape):
 
-        self.dense = Dense(self.units, input_shape=batch_input_shape)
-        self.bn = BatchNormalization(momentum=self.bn_momentum)
-        self.activation = ReLU()
+        self.dense = layers.Dense(self.units, input_shape=batch_input_shape)
+        self.bn = layers.BatchNormalization(momentum=self.bn_momentum)
+        self.activation = layers.ReLU()
 
     def call(self, x, training=None):
 
         x = self.dense(x)
-        x = self.bn(x, training)
+        x = self.bn(x, training=training)
 
         return self.activation(x)
     

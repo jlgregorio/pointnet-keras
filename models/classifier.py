@@ -1,12 +1,12 @@
 import tensorflow as tf
 from tensorflow import keras
-from keras.models import Model
-from keras.layers import Dense, Dropout, GlobalMaxPooling1D
+from keras import layers
+#from keras.layers import Dense, Dropout, GlobalMaxPooling1D
 
 from models import PointNetTransform, PointNetSharedMLP, PointNetMLP
 
 
-class PointNetClassifier(Model):
+class PointNetClassifier(keras.Model):
     """The PointNet model for classification."""
 
     def __init__(self,
@@ -67,63 +67,58 @@ class PointNetClassifier(Model):
             bn_momentum=self.bn_momentum,
             name="mlp_1_512"
         )
-        self.dropout_1 = Dropout(rate=0.3)
+        self.dropout_1 = layers.Dropout(rate=0.3)
 
         self.mlp_2 = PointNetMLP(
             256,
             bn_momentum=self.bn_momentum,
             name="mlp_2_256"
         )
-        self.dropout_2 = Dropout(rate=0.3)
+        self.dropout_2 = layers.Dropout(rate=0.3)
         
         # Outputs
         # Note: softmax activation is not used in the original implementation
-        self.output_scores = Dense(
+        self.output_scores = layers.Dense(
             self.num_classes,
             activation="softmax",
             name="output_scores"
         )
 
 
-    def build(self, batch_input_shape):
-
-        super().build(batch_input_shape)
-
-
     def call(self, input_points, training=None):
                 
         # Input transformer 
         # (B, N, 3) -> (B, N, 3)
-        x = self.input_transform(input_points, training)
+        x = self.input_transform(input_points, training=training)
         x = tf.expand_dims(x, axis=2) # for weight-sharing of conv
         
         # Embed to 64-dim space 
         # (B, N, 3) -> (B, N, 64) -> (B, N, 64)
-        x = self.shared_mlp_1(x, training)
-        x = self.shared_mlp_2(x, training)
+        x = self.shared_mlp_1(x, training=training)
+        x = self.shared_mlp_2(x, training=training)
         x = tf.squeeze(x, axis=2)
 
         # Feature transformer 
         # (B, N, 64) -> (B, N, 64)
-        x = self.feature_transform(x, training)
+        x = self.feature_transform(x, training=training)
 
         # Embed to 1024-dim space 
         # (B, N, 64) -> (B, N, 64) -> (B, N, 128) -> (B, N, 1024)
         x = tf.expand_dims(x, axis=2)
-        x = self.shared_mlp_3(x, training)
-        x = self.shared_mlp_4(x, training)
-        x = self.shared_mlp_5(x, training)
+        x = self.shared_mlp_3(x, training=training)
+        x = self.shared_mlp_4(x, training=training)
+        x = self.shared_mlp_5(x, training=training)
         x = tf.squeeze(x, axis=2)
 
         # Global feature vector
         # (B, N, 1024) -> (B, 1024)
-        x = GlobalMaxPooling1D()(x)
+        x = layers.GlobalMaxPooling1D()(x)
 
         # FC layers to output k scores
         # (B, 1024) -> (B, 512) -> (B, 126) -> (B, 40)
-        x = self.mlp_1(x, training)
-        x = self.dropout_1(x, training)
-        x = self.mlp_2(x, training)
-        x = self.dropout_2(x, training)
+        x = self.mlp_1(x, training=training)
+        x = self.dropout_1(x, training=training)
+        x = self.mlp_2(x, training=training)
+        x = self.dropout_2(x, training=training)
 
         return self.output_scores(x)
