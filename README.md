@@ -1,23 +1,25 @@
 # PointNet implementation using Keras
 
-This is a (yet another) custom implementation of the well-known PointNet model for pointcloud classification. This was coded with the objective to keep it as simple as possible, limiting the use of third-party libraries and making the most of the Keras API (Tensorflow background).
+This is a (yet another) custom implementation of the well-known PointNet model for pointcloud classification. This was coded with the objective to keep it as simple as possible, limiting the use of third-party libraries and making the most of the Keras API (theoretically "backend-agnostic").
 
 ## Getting started
 
 ### Dependencies
 
-The code runs with `python` 3.11, `numpy` 1.26, `tensorflow` 2.14 (`keras` 2.14).
+The code has been tested with `python` 3.9, `numpy` 1.26, `keras` 3.3 (`tensorflow` 2.16 as backend).
 
-Tensorflow 2 is preferably installed using pip with
+Dependencies may be installed via conda (may not be the last version) with
+
+    conda install tensorflow-gpu -c conda-forge
+
+although Tensorflow 2 is preferably installed using pip with
 
     pip install --upgrade pip
     pip install tensorflow
 
-but may also be installed via conda with
+Both commands will also install Keras at the same time.
 
-    conda install tensorflow-gpu -c conda-forge
-
-(not the last version but it works here).
+Keras may also be installed first or with another backend (i.e., JAX or PyTorch).
 
 ### Training
 

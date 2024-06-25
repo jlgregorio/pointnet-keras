@@ -4,10 +4,9 @@ import json
 
 import numpy as np
 from matplotlib import pyplot as plt
-from tensorflow import keras
+import keras
 
 from utils import preprocess_mesh
-
 
 
 if __name__ == "__main__":

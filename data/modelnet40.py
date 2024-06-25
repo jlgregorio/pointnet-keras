@@ -80,7 +80,7 @@ def parse_ModelNet40_dataset(data_dir, split="original", test_size=0.2):
 
 if __name__ == "__main__":
 
-    MN40_DIR = "/home/localadmin/jean-loup/datasets/ModelNet40"
+    MN40_DIR = "../datasets/ModelNet40"
     NUM_POINTS = 2048
     USE_NORMALS = False
 

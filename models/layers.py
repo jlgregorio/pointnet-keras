@@ -1,6 +1,6 @@
 import numpy as np
-import tensorflow as tf
-from tensorflow import keras
+import keras
+from keras import ops
 from keras import layers
 
 
@@ -72,11 +72,11 @@ class PointNetTransform(layers.Layer):
         # Transformation net or T-net
         # (B, 256) -> (B, D, D)
         x = self.transform(x) # (B, D**2)
-        x = tf.reshape(x, (-1, self.num_features, self.num_features))
+        x = ops.reshape(x, (-1, self.num_features, self.num_features))
 
         # Matrix multiply 
         # (B, D, D) * (B, D, D) = (B, N, D)
-        return tf.matmul(input_x, x)
+        return ops.matmul(input_x, x)
 
     def get_config(self):
         config = super(PointNetTransform, self).get_config()
@@ -106,10 +106,10 @@ class OrthogonalRegularizer(keras.regularizers.Regularizer):
     def __call__(self, x):
         
         # (B, D**2) -> (B, D, D)
-        x = tf.reshape(x, (-1, self.num_features, self.num_features))   
-        x_xT = tf.matmul(x, tf.transpose(x, perm=[0, 2, 1]))
+        x = ops.reshape(x, (-1, self.num_features, self.num_features))   
+        x_xT = ops.matmul(x, ops.transpose(x, axes=[0, 2, 1]))
         
-        return self.weight * tf.reduce_sum((tf.eye(self.num_features) - x_xT)**2)
+        return self.weight * ops.sum((ops.eye(self.num_features) - x_xT)**2)
 
 
 class PointNetSharedMLP(layers.Layer):

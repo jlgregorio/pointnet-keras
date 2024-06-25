@@ -1,27 +1,24 @@
 import os
 
 import numpy as np
-import tensorflow as tf
-from tensorflow import keras
+import keras
 import h5py
 
 from models import PointNetClassifier
 from utils import augment_points
 
 
-class DataGenerator(keras.utils.Sequence):
+class DataGenerator(keras.utils.PyDataset):
     """Dataset is modified between epoch."""
 
-    def __init__(self, x_in, y_in, batch_size, augment_data=False):
+    def __init__(self, x_in, y_in, batch_size, augment_data=False, **kwargs):
 
+        super().__init__(**kwargs)
         self.x, self.y = x_in, y_in
         self.data_len = len(y_in)
-
         self.batch_size = batch_size
-
         self.indices = np.arange(self.data_len)
         np.random.shuffle(self.indices)
-
         self.augment_data = augment_data
 
     def __len__(self):
@@ -67,10 +64,11 @@ class LearningRateScheduler(keras.callbacks.Callback):
         # Set initial value
         if not epoch:
             lr.assign(self.initial_lr)
+            print(f"Initial Learning rate is {float(np.array(lr)):.6f}.")
         # Divide by decay_rate every decay_epochs
         elif not epoch % self.decay_epochs:
             lr.assign(lr/2)
-        print(f"Epoch {epoch}: Learning rate is {float(np.array(lr)):.6f}.")
+            print(f"Epoch {epoch}: Learning rate is {float(np.array(lr)):.6f}.")
 
 
 class BatchNormalizationMomentumScheduler(keras.callbacks.Callback):
@@ -103,7 +101,7 @@ if __name__ == "__main__":
     USE_NORMALS = False
     SAVE_DIR = "./models/saved/"
     # About the training
-    MAX_EPOCH=200
+    MAX_EPOCH=20
     BATCH_SIZE = 32
     # About the data
     DATA_DIR = "./data/ModelNet40_preprocessed/"
@@ -118,7 +116,7 @@ if __name__ == "__main__":
     validation_generator = DataGenerator(test_points, test_labels, BATCH_SIZE, augment_data=False)
 
     # Build and train the model    
-    model = PointNetClassifier(NUM_CLASSES)
+    model = PointNetClassifier(NUM_CLASSES, 0.5)
     model.build((BATCH_SIZE, NUM_POINTS, 6 if USE_NORMALS else 3))
     model.summary()
 
@@ -126,6 +124,7 @@ if __name__ == "__main__":
         loss="sparse_categorical_crossentropy",
         optimizer="adam",
         metrics=["sparse_categorical_accuracy"],
+        #run_eagerly=True
     )
     
     history = model.fit(
@@ -134,7 +133,7 @@ if __name__ == "__main__":
         validation_data=validation_generator,
         callbacks=[
             LearningRateScheduler(),
-            BatchNormalizationMomentumScheduler()
+            #BatchNormalizationMomentumScheduler()
         ]
     )
 

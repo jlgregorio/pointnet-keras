@@ -1,7 +1,5 @@
-import tensorflow as tf
-from tensorflow import keras
+import keras
 from keras import layers
-#from keras.layers import Dense, Dropout, GlobalMaxPooling1D
 
 from models import PointNetTransform, PointNetSharedMLP, PointNetMLP
 
@@ -20,7 +18,7 @@ class PointNetClassifier(keras.Model):
         
         super().__init__(**kwargs)
         self.num_classes=num_classes
-        self.bn_momentum = tf.Variable(bn_momentum, trainable=False) # for Callback use
+        self.bn_momentum = bn_momentum #tf.Variable(bn_momentum, trainable=False) # for Callback use
 
         # 1st transformation network (without regularization)
         self.input_transform = PointNetTransform(
