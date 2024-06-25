@@ -3,7 +3,6 @@ import tensorflow as tf
 from tensorflow import keras
 from keras import layers
 
-# TODO: use a Regulizer (Keras) in PointNetTransform Layer
 
 class PointNetTransform(layers.Layer):
     """The PointNet transform layer used for features encoding.
@@ -25,79 +24,58 @@ class PointNetTransform(layers.Layer):
 
     def build(self, input_shape):
         
-        # num_features or dimension D (= 3 by default, for x, y, z)
+        # num_features or dimension D
+        # e.g., D=3 for the input transform net for and D=64 for the feature 
+        # transform net in the PointNet original paper
         self.num_features = input_shape[-1]
 
         self.shared_mlp_1 = PointNetSharedMLP(64, bn_momentum=self.bn_momentum)
         self.shared_mlp_2 = PointNetSharedMLP(128, bn_momentum=self.bn_momentum)
         self.shared_mlp_3 = PointNetSharedMLP(1024, bn_momentum=self.bn_momentum)
         
+        self.max_pool = layers.GlobalMaxPooling1D()
+
         self.mlp_1 = PointNetMLP(512, bn_momentum=self.bn_momentum)
         self.mlp_2 = PointNetMLP(256, bn_momentum=self.bn_momentum)
 
-        # Trainable weights
-        self.w = self.add_weight(
-            shape=(256, self.num_features**2),
-            initializer=tf.zeros_initializer,
-            trainable=True,
-            name='w'
+        reg = OrthogonalRegularizer(self.num_features) if self.regularization else None
+        self.transform = layers.Dense(
+            self.num_features**2,
+            kernel_initializer="zeros",
+            bias_initializer=keras.initializers.Constant(
+                np.eye(self.num_features).flatten()
+            ),
+            activity_regularizer=reg
         )
-
-        # Trainable biases
-        self.b = self.add_weight(
-            shape=(self.num_features, self.num_features),
-            initializer=tf.zeros_initializer,
-            trainable=True,
-            name='b'
-        )
-
-        # Initialize bias with identity
-        I = tf.constant(np.eye(self.num_features), dtype=tf.float32)
-        self.b = tf.math.add(self.b, I)
 
 
     def call(self, x, training=None):
 
         # Keep trace of input for final matrix multiply
-        # (B, N, D)
-        input_x = x 
+        input_x = x # (B, N, D)
 
         # Embed to higher dim
-        # (B, N, D) -> (B, N, 1, 3/D)
-        x = tf.expand_dims(input_x, axis=2)
+        # (B, N, D) -> (B, N, 1024)
         x = self.shared_mlp_1(x, training=training)
         x = self.shared_mlp_2(x, training=training)
         x = self.shared_mlp_3(x, training=training)
-        # (B, N, 1, 3/D) -> (B, N, 1024)
-        x = tf.squeeze(x, axis=2)
 
         # Global features
         # (B, N, 1024) -> (B, 1024)
-        x = layers.GlobalMaxPooling1D()(x)
+        x = self.max_pool(x)
 
         # Fully-connected layers
         # (B, 1024) -> (B, 512) -> (B, 256)
         x = self.mlp_1(x, training=training)
         x = self.mlp_2(x, training=training)
 
-        # Convert to (B, B) matrix for matrix multiplication with input
-        # (B, 256) -> (B, 1, 256)
-        x = tf.expand_dims(x, axis=1)
-        # (B, 1, 256) -> (B, 1, D*D)
-        x = tf.matmul(x, self.w)
-        x = tf.squeeze(x, axis=1)
+        # Transformation net or T-net
+        # (B, 256) -> (B, D, D)
+        x = self.transform(x) # (B, D**2)
         x = tf.reshape(x, (-1, self.num_features, self.num_features))
 
-        # Add bias term (initialized to identity matrix)
-        x += self.b
-
-        # Add regularization
-        if self.regularization:
-            eye = tf.constant(np.eye(self.num_features), dtype=tf.float32)
-            x_xT = tf.matmul(x, tf.transpose(x, perm=[0, 2, 1]))
-            reg_loss = tf.nn.l2_loss(eye - x_xT)
-            self.add_loss(1e-3 * reg_loss)
-
+        # Matrix multiply 
+        # (B, D, D) * (B, D, D) = (B, N, D)
         return tf.matmul(input_x, x)
 
     def get_config(self):
@@ -110,13 +88,36 @@ class PointNetTransform(layers.Layer):
         return cls(**config)
 
 
+class OrthogonalRegularizer(keras.regularizers.Regularizer):
+    """The regularization constrains the feature transformation matrix to be 
+    close to orthogonal, and improves the optimimzation stability and the model
+     performances.
+    """
+    
+    def __init__(self, num_features, weight=1e-3):
+        """Args:
+            num_features: the number of features.
+            weight: the weight for the regularization loss.
+        """
+        
+        self.num_features = num_features
+        self.weight = weight
+
+    def __call__(self, x):
+        
+        # (B, D**2) -> (B, D, D)
+        x = tf.reshape(x, (-1, self.num_features, self.num_features))   
+        x_xT = tf.matmul(x, tf.transpose(x, perm=[0, 2, 1]))
+        
+        return self.weight * tf.reduce_sum((tf.eye(self.num_features) - x_xT)**2)
+
+
 class PointNetSharedMLP(layers.Layer):
     """The PointNet shared MLP (or convolution) layer used for features encoding.
     
-    It consists of a shared (convulutional) layer, a batch normalization layer 
+    It consists of a shared (convolutional) layer, a batch normalization layer 
     and a ReLU activation unit.
     """
-
     
     def __init__(self, filters, bn_momentum=0.99, **kwargs):
         """Args:
@@ -130,9 +131,9 @@ class PointNetSharedMLP(layers.Layer):
 
     def build(self, batch_input_shape):
 
-        self.conv = layers.Conv2D(
+        self.conv = layers.Conv1D(
             self.filters,
-            kernel_size=(1, 1),
+            kernel_size=1,
             input_shape=batch_input_shape
         )
         self.bn = layers.BatchNormalization(momentum=self.bn_momentum)
