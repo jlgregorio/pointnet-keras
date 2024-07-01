@@ -58,15 +58,18 @@ class LearningRateScheduler(keras.callbacks.Callback):
         self.decay_rate = 2
         self.decay_epochs = 20
 
-    def on_epoch_begin(self, epoch, logs=None):
+    def on_train_begin(self, logs=None):
 
         lr = self.model.optimizer.learning_rate
         # Set initial value
-        if not epoch:
-            lr.assign(self.initial_lr)
-            print(f"Initial Learning rate is {float(np.array(lr)):.6f}.")
+        lr.assign(self.initial_lr)
+        print(f"Initial Learning rate is {float(np.array(lr)):.6f}.")
+
+    def on_epoch_begin(self, epoch, logs=None):
+
+        lr = self.model.optimizer.learning_rate
         # Divide by decay_rate every decay_epochs
-        elif not epoch % self.decay_epochs:
+        if epoch and not epoch % self.decay_epochs:
             lr.assign(lr/2)
             print(f"Epoch {epoch}: Learning rate is {float(np.array(lr)):.6f}.")
 
@@ -82,15 +85,22 @@ class BatchNormalizationMomentumScheduler(keras.callbacks.Callback):
         self.final_momentum = 0.99
         self.rate = 0.005
 
+    def on_train_begin(self, logs=None):
+
+        # Set new value
+        self.model.bn_momentum = self.initial_momentum
+        print(f"Initial BatchNormalization momentum is {self.model.bn_momentum:.3f}.")
+
     def on_epoch_begin(self, epoch, logs=None):
 
-        # Linear growth
-        new_bn_momentum = self.initial_momentum + self.rate * epoch
-        # Max value
-        new_bn_momentum = np.min([new_bn_momentum, self.final_momentum])
-        # Set new value
-        self.model.bn_momentum.assign(new_bn_momentum)
-        print(f"Epoch {epoch}: BatchNormalization momentum is {float(np.array(new_bn_momentum)):.3f}.")
+        if epoch:
+            # Linear growth
+            new_bn_momentum = self.initial_momentum + self.rate * epoch
+            # Max value
+            new_bn_momentum = np.min([new_bn_momentum, self.final_momentum])
+            # Set new value
+            self.model.bn_momentum = new_bn_momentum
+            print(f"Epoch {epoch}: BatchNormalization momentum is {self.model.bn_momentum:.3f}.")
 
 
 if __name__ == "__main__":
@@ -101,7 +111,7 @@ if __name__ == "__main__":
     USE_NORMALS = False
     SAVE_DIR = "./models/saved/"
     # About the training
-    MAX_EPOCH=20
+    MAX_EPOCH=200
     BATCH_SIZE = 32
     # About the data
     DATA_DIR = "./data/ModelNet40_preprocessed/"
@@ -116,15 +126,14 @@ if __name__ == "__main__":
     validation_generator = DataGenerator(test_points, test_labels, BATCH_SIZE, augment_data=False)
 
     # Build and train the model    
-    model = PointNetClassifier(NUM_CLASSES, 0.5)
+    model = PointNetClassifier(NUM_CLASSES)
     model.build((BATCH_SIZE, NUM_POINTS, 6 if USE_NORMALS else 3))
     model.summary()
 
     model.compile(
         loss="sparse_categorical_crossentropy",
         optimizer="adam",
-        metrics=["sparse_categorical_accuracy"],
-        #run_eagerly=True
+        metrics=["sparse_categorical_accuracy"]
     )
     
     history = model.fit(
@@ -133,7 +142,7 @@ if __name__ == "__main__":
         validation_data=validation_generator,
         callbacks=[
             LearningRateScheduler(),
-            #BatchNormalizationMomentumScheduler()
+            BatchNormalizationMomentumScheduler()
         ]
     )
 

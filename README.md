@@ -1,4 +1,4 @@
-# PointNet implementation using Keras
+# PointNet implementation using Keras 3
 
 This is a (yet another) custom implementation of the well-known PointNet model for pointcloud classification. This was coded with the objective to keep it as simple as possible, limiting the use of third-party libraries and making the most of the Keras API (theoretically "backend-agnostic").
 
@@ -6,9 +6,9 @@ This is a (yet another) custom implementation of the well-known PointNet model f
 
 ### Dependencies
 
-The code has been tested with `python` 3.9, `numpy` 1.26, `keras` 3.3 (`tensorflow` 2.16 as backend).
+The code has been mainly developed and tested with `python` 3.9, `numpy` 1.26, and `keras` 3.3 with `tensorflow` 2.16 as backend. However, it has also been written to work with other backends (thanks to Keras), and tested sucessfully with `torch` 2.3.
 
-Dependencies may be installed via conda (may not be the last version) with
+Dependencies heve been installed via conda with
 
     conda install tensorflow-gpu -c conda-forge
 
@@ -17,15 +17,13 @@ although Tensorflow 2 is preferably installed using pip with
     pip install --upgrade pip
     pip install tensorflow
 
-Both commands will also install Keras at the same time.
-
-Keras may also be installed first or with another backend (i.e., JAX or PyTorch).
+Both commands also install Keras at the same time.
 
 ### Training
 
 PointNet is often trained on the ModelNet40 dataset, which is also chosen here. An already trained model is included in `models/saved` folder (see below for usage). The `train_model.py` file may be re-used for futher experimentations (see below for data preparation).
 
-In detail, the use of a custom training loop has been avoided. The *learning rate* and *batch normalization momentum* are updated during training (in accordance with the original paper/implementation) by relying on Callbacks (`tf.keras.callbacks.Callback`). The training data are augmented "on the fly" (also in accordance with the original paper/implementation) by implementing a custom data generator (`keras.utils.Sequence`).
+In detail, the use of a custom training loop has been avoided. The *learning rate* and *batch normalization momentum* are updated during training (in accordance with the original paper/implementation) by relying on Callbacks (`tf.keras.callbacks.Callback`). The training data are augmented "on the fly" (also in accordance with the original paper/implementation) by implementing a custom data generator (`keras.utils.PyDataset`).
 
 ### Predicting
 
