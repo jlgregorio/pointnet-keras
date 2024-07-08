@@ -111,7 +111,7 @@ if __name__ == "__main__":
     USE_NORMALS = False
     SAVE_DIR = "./models/saved/"
     # About the training
-    MAX_EPOCH=200
+    MAX_EPOCH = 10
     BATCH_SIZE = 32
     # About the data
     DATA_DIR = "./data/ModelNet40_preprocessed/"
@@ -147,5 +147,28 @@ if __name__ == "__main__":
     )
 
     # Save the trained model
-    np.save(os.path.join(SAVE_DIR, "history_train.npy"), history.history)
-    model.save(os.path.join(SAVE_DIR,"PointNetClassifier.keras"))
+    #np.save(os.path.join(SAVE_DIR, "history_train.npy"), history.history)
+    #model.save(os.path.join(SAVE_DIR,"PointNetClassifier.keras"))
+
+    # Show training curves
+    try:
+        from matplotlib import pyplot as plt
+        fig = plt.figure(figsize=(8, 5))
+        ax1 = fig.add_subplot()
+        ax2 = ax1.twinx()
+        ax1.set_xlabel("epoch")
+        ax1.set_ylabel("accuracy")
+        ax1.set_title("training curves")
+        ax2.set_ylabel("loss")
+        for key, val in history.history.items():
+            if "accuracy" in key:
+                ax1.plot(val, label=key)
+            elif "loss" in key:
+                ax2.plot(val, label=key, linestyle="--")
+        fig.legend(loc='center', fontsize="small")
+        plt.tight_layout()
+        fig.savefig("docs/training_curves.png")
+        plt.show()
+
+    except ModuleNotFoundError:
+        pass

@@ -3,7 +3,6 @@ import os
 import json
 
 import numpy as np
-from matplotlib import pyplot as plt
 import keras
 
 from utils import preprocess_mesh
@@ -17,24 +16,32 @@ if __name__ == "__main__":
 
     # Load example
     points = preprocess_mesh(os.path.join(DATA_DIR, "example/desk_chair.off"), NUM_POINTS)
-    points = np.expand_dims(points, axis=0) # (N, 3) -> (1, N, 3)
-    # Show points
-    fig = plt.figure(figsize=(5, 5))
-    ax = fig.add_subplot(111, projection="3d")
-    ax.scatter(points[:, 0], points[:, 1], points[:, 2])
-    ax.set_axis_off()
-    plt.show()
+    batch = np.expand_dims(points, axis=0) # (2048, 3) -> (1, 2048, 3)
 
     # Load model & predict
     model = keras.saving.load_model(os.path.join(SAVE_DIR, "PointNetClassifier.keras"))
-    preds = model.predict(points)
+    preds = model.predict(batch)
 
-    # Load class map
+    # Return result
+    preds = preds.flatten() # (1, 40) -> (40, )
+    label = np.argmax(preds.flatten())
     with open(os.path.join(DATA_DIR, "ModelNet40_preprocessed/class_map.json"), "r") as f:
         # "inverted" dict stored in json file
         CLASS_MAP = {v: k for k, v in json.load(f).items()}
+    result = f"predicted class '{CLASS_MAP.get(label)}' with probability {preds[label]:.3f}"
 
-    # Return result
-    preds = preds.flatten()
-    label = np.argmax(preds)
-    print(f"predicted class: {CLASS_MAP.get(label)} with probability: {preds[label]:.3f}")
+    try:
+        from matplotlib import pyplot as plt
+        fig = plt.figure(figsize=(8, 5))
+        ax = fig.add_subplot(111, projection="3d")
+        ax.scatter(points[:, 0], points[:, 1], points[:, 2],
+                   c=points[:, 2], cmap='twilight_shifted')
+        ax.view_init(10, 45)
+        ax.set_axis_off()
+        ax.set_title(result)
+        fig.tight_layout()
+        fig.savefig("docs/pred_example.png")
+        plt.show()
+
+    except ModuleNotFoundError:
+        print(result)
