@@ -147,8 +147,8 @@ if __name__ == "__main__":
     )
 
     # Save the trained model
-    #np.save(os.path.join(SAVE_DIR, "history_train.npy"), history.history)
-    #model.save(os.path.join(SAVE_DIR,"PointNetClassifier.keras"))
+    np.save(os.path.join(SAVE_DIR, "history_train.npy"), history.history)
+    model.save(os.path.join(SAVE_DIR,"PointNetClassifier.keras"))
 
     # Show training curves
     try:

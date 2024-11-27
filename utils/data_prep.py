@@ -3,7 +3,7 @@ import numpy as np
 from utils import load_off, Mesh
 
 
-def preprocess_mesh(mesh_file, num_points=2048, compute_normals=False, augment_data=False):
+def preprocess_mesh(mesh_file, num_points=2048, compute_normals=False):
     """From a mesh file to a usable pointcloud."""
 
     # Load mesh
